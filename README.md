@@ -1,2 +1,4 @@
-# Intelligence Sensing
-Normal algorithms and 1D neural network models and methods implemented in the area of Wireless sensing and AIot 
+
+SensePort is a Python package that provides two high-level features:
+1. Plug-and-play modules in AI sensing can be inserted into your network.
+2. Converting common CV and NLP models and algorithms into 1D adapt for AIoT.
