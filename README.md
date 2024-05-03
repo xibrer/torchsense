@@ -1,2 +1,2 @@
-# Sensing
-Normal algorithm and 1Dmodels implements in Wireless sensing and Aiot 
+# Intelligence Sensing
+Normal algorithms and 1D neural network models and methods implemented in the area of Wireless sensing and AIot 
