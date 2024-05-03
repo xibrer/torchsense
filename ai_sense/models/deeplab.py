@@ -1,6 +1,7 @@
 # from models import BaseVAE
 import torch
 from torch import nn
+import mobilenet
 
 
 class DepthSeparableConv1d(nn.Module):
@@ -134,3 +135,11 @@ class MobileNetV1(nn.Module):
         x = self.high_level_features(middle_level_feat)
         # print("x after backbone:", x.size())
         return low_level_feat, middle_level_feat, x
+
+
+def build_backbone(backbone, in_channels):
+
+    if backbone == 'mobilenet':
+        return mobilenet.MobileNetV1(in_channels)
+    else:
+        raise
