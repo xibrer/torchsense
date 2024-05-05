@@ -1,4 +1,3 @@
 
-SensePort is a Python package that provides two features:
-1. Plug-and-play modules in AI sensing can be inserted into your network.
-2. Converting common CV and NLP models and algorithms into 1D adapt for AIoT.
+Torchsense is a library for sensor data processing with PyTorch. 
+It provides I/O, signal and data processing functions, datasets, model implementations and application components.
