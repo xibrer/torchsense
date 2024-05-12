@@ -51,9 +51,12 @@ Train model with default configuration
 from torchsense.datasets.folder import ImageFolder
 from torch.utils.data import DataLoader
 
-# input keys you want input
-list1 = [key1,key2,key3]# example ["acc", "mix_mic", "mic"]
-data = ImageFolder(root="data", params=list1)
+# you need to input
+list1 = [key1,key2,key3] # example ["acc", "mix_mic", "mic"]
+root_data = "data" # data root path
+
+# as normal
+data = ImageFolder(root=root_data, params=list1)
 train_set, test_set = data.train_test_split(0.5)
 train_loader = DataLoader(train_set, batch_size=1, shuffle=True)
 test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
