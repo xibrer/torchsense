@@ -1,9 +1,9 @@
-from torchsense.datasets.folder import ImageFolder
+from torchsense.datasets.folder import SensorFolder
 from torch.utils.data import DataLoader
 
 list1 = ["acc", "mix_mic", "mic"]  #, "sisnr", "speakernum", "text"]
 list2 = ["PY_orbit2_RTN"]
-data = ImageFolder(root="data1", params=list1)
+data = SensorFolder(root="data1", params=list1)
 train_set, test_set = data.train_test_split(0.5)
 train_loader = DataLoader(train_set, batch_size=1, shuffle=True)
 test_loader = DataLoader(test_set, batch_size=1, shuffle=False)

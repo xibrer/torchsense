@@ -256,6 +256,17 @@ class DatasetFolder(VisionDataset):
     def __len__(self) -> int:
         return len(self.samples)
 
+    def train_test_split(self, val_ratio):
+        """
+        划分训练集和验证集的函数，接收一个参数：`val_ratio`（验证集的比例）。
+        这个函数会返回划分好的训练集和验证集。
+        """
+        val_size = int(val_ratio * len(self))
+        train_size = len(self) - val_size
+        train_set, val_set = random_split(self, [train_size, val_size])
+
+        return train_set, val_set
+
 
 IMG_EXTENSIONS = (".mat", ".jpeg", ".npz")
 
@@ -265,7 +276,7 @@ def default_loader(path: str, params: list) -> Any:
     return load_file(path, params)
 
 
-class ImageFolder(DatasetFolder):
+class SensorFolder(DatasetFolder):
     """A generic data1 loader where the images are arranged in this way by default: ::
 
         root/dog/xxx.png
@@ -318,14 +329,3 @@ class ImageFolder(DatasetFolder):
             allow_empty=allow_empty,
         )
         self.imgs = self.samples
-
-    def train_test_split(self, val_ratio):
-        """
-        划分训练集和验证集的函数，接收一个参数：`val_ratio`（验证集的比例）。
-        这个函数会返回划分好的训练集和验证集。
-        """
-        val_size = int(val_ratio * len(self))
-        train_size = len(self) - val_size
-        train_set, val_set = random_split(self, [train_size, val_size])
-
-        return train_set, val_set
