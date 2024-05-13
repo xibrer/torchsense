@@ -54,7 +54,7 @@ def load_mat_file(path, list_j):
 
 def get_meta_data(raw_data: Union[Dict[str, Any], File], keys: List[str] = None) -> Tuple:
     if keys is None:
-        # If list_j is empty, return all values in data as a tuple
+        # If list_j is empty, return all values in data1 as a tuple
         # Remove meta info
         if '__header__' in raw_data:
             del raw_data['__header__']
@@ -82,5 +82,5 @@ def load_npz_file(path, keys):
 
 # 使用示例
 # file_path = 'example.txt'
-# data = load_file(file_path)
-# print(data)
+# data1 = load_file(file_path)
+# print(data1)

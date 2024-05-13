@@ -53,7 +53,7 @@ from torch.utils.data import DataLoader
 
 # you need to input
 list1 = [key1,key2,key3] # example ["acc", "mix_mic", "mic"]
-root_data = "data" # data root path
+root_data = "data1" # data1 root path
 
 # as normal
 data = ImageFolder(root=root_data, params=list1)

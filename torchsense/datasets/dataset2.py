@@ -29,7 +29,7 @@ class DatasetFolder(Dataset):
         sessions (Tuple[int]): Tuple of sessions (1-5) to use. (Default: ``(1, 2, 3, 4, 5)``)
         utterance_type (str or None, optional): Which type(s) of utterances to include in the dataset.
             Options: ("scripted", "improvised", ``None``). If ``None``, both scripted and improvised
-            data are used.
+            data1 are used.
     """
 
     def __init__(

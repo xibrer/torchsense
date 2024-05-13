@@ -56,7 +56,7 @@ class VisionDataset(data.Dataset):
             index (int): Index
 
         Returns:
-            (Any): Sample and meta data, optionally transformed by the respective transforms.
+            (Any): Sample and meta data1, optionally transformed by the respective transforms.
         """
         raise NotImplementedError
 

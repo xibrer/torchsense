@@ -63,7 +63,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+*.gz
 # Distribution / packaging
 .Python
 build/
@@ -209,3 +209,6 @@ hs_err_pid*
 replay_pid*
 
 
+*-ubyte
+lightning_logs/
+tmp/

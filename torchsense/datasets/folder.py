@@ -108,7 +108,7 @@ def make_dataset(
 
 
 class DatasetFolder(VisionDataset):
-    """A generic data loader.
+    """A generic data1 loader.
 
     This default directory structure can be customized by overriding the
     :meth:`find_classes` method.
@@ -266,7 +266,7 @@ def default_loader(path: str, params: list) -> Any:
 
 
 class ImageFolder(DatasetFolder):
-    """A generic data loader where the images are arranged in this way by default: ::
+    """A generic data1 loader where the images are arranged in this way by default: ::
 
         root/dog/xxx.png
         root/dog/xxy.png
