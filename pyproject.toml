@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torchsense"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
     {name = "Xingwei Wang", email = "wxwjkl123@gmail.com"},
 ]
 description = "Torchsense is a library for sensor data processing with PyTorch"
 requires-python = ">=3.7"
 dependencies = [
-    "numpy",
+    "numpy","torch","lightning"
 
 ]
 

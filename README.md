@@ -91,3 +91,7 @@ def train():
     trainer = Trainer(model, max_epochs=5)
     trainer.fit(train_loader, val_loader)
 ```
+
+## Thanks
+
+u-net parts reference [milesial](https://github.com/milesial/Pytorch-UNet/tree/master)
