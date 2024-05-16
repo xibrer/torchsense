@@ -4,14 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torchsense"
-version = "0.0.3"
+dynamic = ["version"]
 authors = [
     {name = "Xingwei Wang", email = "wxwjkl123@gmail.com"},
 ]
 description = "Torchsense is a library for sensor data processing with PyTorch"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
 dependencies = [
-    "numpy","torch","lightning"
+    "numpy","torch","lightning",
+    "torchmetrics[audio]",
 
 ]
 
@@ -22,5 +24,5 @@ dependencies = [
 #[tool.setuptools]
 #packages = ["torchsense"]
 
-
+[tool.setuptools_scm]
 

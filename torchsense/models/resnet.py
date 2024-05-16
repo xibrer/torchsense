@@ -151,10 +151,10 @@ class ResNet(nn.Module):
         return loss
 
 
-def resnet18():
+def resnet18(num_classes=1):
     """ return a ResNet 18 object
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(BasicBlock, [2, 2, 2, 2],num_classes=num_classes)
 
 
 def resnet34():

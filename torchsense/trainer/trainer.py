@@ -1,10 +1,15 @@
-from torchsense.models.lit_model import LitModel
+from torchsense.models.lit_model import LitRegressModel,LitClassModel
 import lightning as L
 
 
 class Trainer:
-    def __init__(self, model, max_epochs=5, accelerator="auto"):
-        self.model = LitModel(model)
+    def __init__(self, model, task="r", max_epochs=5, accelerator="auto"):
+        if task == "r":
+            self.model = LitRegressModel(model)
+        elif task == "c":
+            self.model = LitClassModel(model)
+        else:
+            raise ValueError("task must be either 'r' or 'c'")
         self.max_epochs = max_epochs
         self.accelerator = accelerator
 

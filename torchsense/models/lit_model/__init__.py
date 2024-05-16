@@ -1,1 +1,2 @@
-from torchsense.models.lit_model.litmodel import LitModel
+from torchsense.models.lit_model.litclassmodel import LitClassModel
+from torchsense.models.lit_model.litregressmodel import LitRegressModel
