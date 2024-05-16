@@ -1,5 +1,7 @@
 
+
 # TorchSense
+
 <div>
 <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
 <a href="https://pytorchlightning.ai/"><img alt="Lightning" src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white"></a>
@@ -40,12 +42,16 @@ data/
         └── asd932_.ext
 ```
 
-
-## How to run
-torchsense provide two-way to run model
 ### Train model with default configuration
 
-```python 
+<details>
+<summary>Show details</summary>
+
+you can only use our data loader
+
+- the only you need to input are `list1`and `data_path`
+
+```python
 # ensure you already install torch and lightning
 from torchsense.datasets.folder import SensorFolder
 from torch.utils.data import DataLoader
@@ -65,8 +71,18 @@ for i, batch in enumerate(train_loader):
     # ... train your self
 ```
 
-now model only support .mat file
+</details>
+
+
+
 ### Train model with custom configuration
+
+<details>
+<summary>Show details</summary>
+
+you can only use our trainer or model
+
+- the only you need to input are `model`or`dataset`
 ```python
 import torch
 from torchsense.trainer import Trainer
@@ -91,6 +107,8 @@ def train():
     trainer = Trainer(model, max_epochs=5)
     trainer.fit(train_loader, val_loader)
 ```
+
+</details>
 
 ## Thanks
 
