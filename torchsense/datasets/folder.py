@@ -3,24 +3,22 @@ import os.path
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
-from PIL import Image
 from torch.utils.data import random_split
-
 from .vision import VisionDataset
-from .utils import load_file
 
 
 def has_file_allowed_extension(filename: str, extensions: Union[str, Tuple[str, ...]]) -> bool:
-    """Checks if a file is an allowed extension.
+    """Checks if a file is an allowed extension and does not contain 'move' in the filename.
 
     Args:
         filename (string): path to a file
         extensions (tuple of strings): extensions to consider (lowercase)
 
     Returns:
-        bool: True if the filename ends with one of given extensions
+        bool: True if the filename ends with one of given extensions and does not contain 'move'
     """
-    return filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+    return 'move' not in filename.lower() and filename.lower().endswith(
+        extensions if isinstance(extensions, str) else tuple(extensions))
 
 
 def is_image_file(filename: str) -> bool:
@@ -139,10 +137,10 @@ class DatasetFolder(VisionDataset):
     def __init__(
             self,
             root: Union[str, Path],
-            params: list,
-            loader: Callable[[str], Any],
+            params: Tuple[List[str], Optional[List[str]]],
+            loader: Callable[[str, Any], Any],
             extensions: Optional[Tuple[str, ...]] = None,
-            transform: Optional[Callable] = None,
+            transform: Union[Optional[Callable], List[Callable]] = None,
             target_transform: Optional[Callable] = None,
             is_valid_file: Optional[Callable[[str], bool]] = None,
             allow_empty: bool = False,
@@ -235,7 +233,7 @@ class DatasetFolder(VisionDataset):
         """
         return find_classes(directory)
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+    def __getitem__(self, index: int) -> Tuple[Any, Any, Any]:
         """
         Args:
             index (int): Index
@@ -243,15 +241,19 @@ class DatasetFolder(VisionDataset):
         Returns:
             tuple: (sample, target) where target is class_index of the target class.
         """
-        path, target = self.samples[index]
-        sample = self.loader(path, self.params)
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        path, labels = self.samples[index]
+        sample, target = self.loader(path, self.params)
         if len(sample) == 1:
             sample = sample[0]
-        return sample, target
+        if len(target) == 1:
+            target = target[0]
+        if self.transform is not None:
+            for i in range(len(self.transform)):
+                sample[i] = self.transform[i](sample[i])
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target, labels
 
     def __len__(self) -> int:
         return len(self.samples)

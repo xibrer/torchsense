@@ -44,10 +44,10 @@ class SensorFolder(DatasetFolder):
     def __init__(
             self,
             root: str,
-            params: list = None,
-            transform: Optional[Callable] = None,
+            params: Tuple[List[str], Optional[List[str]]],
+            transform: Union[Optional[Callable], List[Callable]] = None,
             target_transform: Optional[Callable] = None,
-            loader: Callable[[str], Any] = default_loader,
+            loader: Callable[[str, Any], Any] = default_loader,
             is_valid_file: Optional[Callable[[str], bool]] = None,
             allow_empty: bool = False,
     ):
@@ -99,10 +99,10 @@ class AudioFolder(DatasetFolder):
     def __init__(
             self,
             root: str,
-            params: list = None,
+            params: Tuple[List[str], Optional[List[str]]] = None,
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
-            loader: Callable[[str], Any] = default_loader,
+            loader: Callable[[str, Any], Any] = default_loader,
             is_valid_file: Optional[Callable[[str], bool]] = None,
             allow_empty: bool = False,
     ):

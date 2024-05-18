@@ -18,14 +18,14 @@ class LitRegressModel(L.LightningModule):
         return self.model(x)
 
     def _calculate_loss(self, batch, mode="train"):
-        x, y = batch
+        x = tuple(batch[0])
+        y = batch[1]
         preds = self.model(x)
-        # print(preds.max())
+
         loss = self.loss_fn(preds, y)
-        # acc = (preds.argmax(dim=-1) == y).float().mean()
 
         self.log("%s_loss" % mode, loss, prog_bar=True)
-        # self.log("%s_acc" % mode, acc, prog_bar=True)
+
         return loss
 
     def configure_optimizers(self):

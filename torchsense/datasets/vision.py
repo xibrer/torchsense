@@ -27,11 +27,11 @@ class VisionDataset(data.Dataset):
     _repr_indent = 4
 
     def __init__(
-        self,
-        root: Union[str, Path] = None,  # type: ignore[assignment]
-        transforms: Optional[Callable] = None,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
+            self,
+            root: Union[str, Path] = None,  # type: ignore[assignment]
+            transforms: Optional[Callable] = None,
+            transform: Union[Optional[Callable], List[Callable]] = None,
+            target_transform: Optional[Callable] = None,
     ) -> None:
         if isinstance(root, str):
             root = os.path.expanduser(root)
@@ -83,7 +83,8 @@ class VisionDataset(data.Dataset):
 
 
 class StandardTransform:
-    def __init__(self, transform: Optional[Callable] = None, target_transform: Optional[Callable] = None) -> None:
+    def __init__(self, transform: Optional[Callable] = None,
+                 target_transform: Optional[Callable] = None) -> None:
         self.transform = transform
         self.target_transform = target_transform
 
