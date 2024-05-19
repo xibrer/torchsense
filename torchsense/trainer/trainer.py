@@ -5,6 +5,7 @@ import lightning as L
 import os
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 import torch
+from lightning.pytorch.tuner import Tuner
 
 L.seed_everything(42)
 CHECKPOINT_PATH = os.environ.get("PATH_CHECKPOINT", "saved_models/base")
@@ -29,9 +30,7 @@ class Trainer:
         self.max_epochs = max_epochs
         self.accelerator = accelerator
         self.precision = precision
-
-    def fit(self, train_loader, val_loader):
-        trainer = L.Trainer(
+        self.trainer = L.Trainer(
             default_root_dir=CHECKPOINT_PATH,
             precision=self.precision,
             accelerator=self.accelerator,
@@ -43,4 +42,16 @@ class Trainer:
 
             ],
         )
-        trainer.fit(self.model, train_loader, val_loader)
+
+    def fit(self, train_loader, val_loader):
+
+        self.trainer.fit(self.model, train_loader, val_loader)
+
+    def lr_find(self, train_loader, val_loader):
+
+        tuner = Tuner(self.trainer)
+
+        # finds learning rate automatically
+        # sets hparams.lr or hparams.learning_rate to that learning rate
+        lr_finder = tuner.lr_find(self.model, train_loader, val_loader)
+        print(lr_finder.suggestion())

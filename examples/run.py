@@ -1,10 +1,9 @@
 from torchsense.trainer import Trainer
-from torchsense.models.cnn4 import CNN4
 from torchsense.datasets.custom import SensorFolder
 from torch.utils.data import DataLoader
 from torchsense.models.gan_g import Generator
 from torchsense import transforms as T
-from torchaudio.transforms import MelScale, Spectrogram
+from torchaudio.transforms import Spectrogram
 
 
 def train():
