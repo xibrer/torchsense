@@ -25,12 +25,12 @@ class LitMultimodalModel(L.LightningModule):
 
         loss = self.loss_fn(preds.flatten(), y.flatten())
 
-        self.log("%s_loss" % mode, loss, prog_bar=True, on_step=mode is "train", on_epoch=mode is "val")
+        self.log("%s_loss" % mode, loss, prog_bar=True, on_step=mode == "train", on_epoch=mode == "val")
 
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr)
+        optimizer = optim.AdamW(self.model.parameters(), lr=self.hparams.lr)
         scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
         # optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
         # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)

@@ -1,7 +1,8 @@
 from .utils import load_file
 from .folder import DatasetFolder
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
-
+from torchsense.transforms import (tensor_has_valid_audio_batch_dimension,
+                                   add_audio_batch_dimension, remove_audio_batch_dimension)
 IMG_EXTENSIONS = (".mat", ".jpeg", ".npz")
 
 
@@ -45,6 +46,8 @@ class SensorFolder(DatasetFolder):
             self,
             root: str,
             params: Tuple[List[str], Optional[List[str]]],
+            pre_model=None,
+            stage_transform: Optional[Callable] = None,
             transform: Union[Optional[Callable], List[Callable]] = None,
             target_transform: Optional[Callable] = None,
             loader: Callable[[str, Any], Any] = default_loader,
@@ -62,6 +65,38 @@ class SensorFolder(DatasetFolder):
             allow_empty=allow_empty,
         )
         self.imgs = self.samples
+        if pre_model is None:
+            self.pre_model = None
+            self.stage_transform = None
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any, Any]:
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (sample, target) where target is class_index of the target class.
+        """
+        path, labels = self.samples[index]
+        sample, target = self.loader(path, self.params)
+        if len(sample) == 1:
+            sample = sample[0]
+        if len(target) == 1:
+            target = target[0]
+        if self.transform is not None:
+            for i in range(len(self.transform)):
+                sample[i] = self.transform[i](sample[i])
+        if self.pre_model is not None:
+            if tensor_has_valid_audio_batch_dimension(sample):
+                sample = add_audio_batch_dimension(sample)
+            stage_out = self.pre_model(tuple(sample))
+            stage_out = remove_audio_batch_dimension(stage_out)
+            if self.stage_transform is not None:
+                sample = self.stage_transform(stage_out)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target, labels
 
 
 class AudioFolder(DatasetFolder):
@@ -100,6 +135,8 @@ class AudioFolder(DatasetFolder):
             self,
             root: str,
             params: Tuple[List[str], Optional[List[str]]] = None,
+            pre_model=None,
+            stage_transform: Optional[Callable] = None,
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
             loader: Callable[[str, Any], Any] = default_loader,
@@ -117,3 +154,5 @@ class AudioFolder(DatasetFolder):
             allow_empty=allow_empty,
         )
         self.imgs = self.samples
+        self.pre_model = pre_model
+        self.stage_transform = stage_transform

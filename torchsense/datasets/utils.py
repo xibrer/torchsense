@@ -108,6 +108,8 @@ def load_npz_file(path, keys):
     npz_data = np.load(path)
     return tuple(npz_data[key] for key in keys if key in npz_data)
 
+
+
 # 使用示例
 # file_path = 'example.txt'
 # data1 = load_file(file_path)
