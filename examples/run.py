@@ -34,6 +34,7 @@ def train():
     pre_model = load_from_ckpt(stage1_model, "epoch=19-val_loss=0.80.ckpt")
     data = SensorFolder(root=data_path,
                         params=(["acc[2]", "mix_mic"], ["mic"]),
+                        max_samples=1000,
                         # pre_model=pre_model,
                         # stage_transform=stage_transform,
                         transform=[transform2, transform1],

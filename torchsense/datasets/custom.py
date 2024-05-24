@@ -2,7 +2,9 @@ from .utils import load_file
 from .folder import DatasetFolder
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 from torchsense.transforms import (tensor_has_valid_audio_batch_dimension,
-                                   add_audio_batch_dimension, remove_audio_batch_dimension)
+                                   add_audio_batch_dimension, remove_audio_batch_dimension, Compose)
+from typing import List, Callable, Any
+
 IMG_EXTENSIONS = (".mat", ".jpeg", ".npz")
 
 
@@ -48,6 +50,7 @@ class SensorFolder(DatasetFolder):
             params: Tuple[List[str], Optional[List[str]]],
             pre_model=None,
             stage_transform: Optional[Callable] = None,
+            max_samples: Optional[int] = None,
             transform: Union[Optional[Callable], List[Callable]] = None,
             target_transform: Optional[Callable] = None,
             loader: Callable[[str, Any], Any] = default_loader,
@@ -64,10 +67,15 @@ class SensorFolder(DatasetFolder):
             is_valid_file=is_valid_file,
             allow_empty=allow_empty,
         )
-        self.imgs = self.samples
-        if pre_model is None:
-            self.pre_model = None
-            self.stage_transform = None
+        if max_samples is not None:
+            max_samples = min(max_samples, len(self.samples))
+            self.samples = self.samples[:max_samples]
+        match pre_model:
+            case None:
+                self.pre_model = None
+            case _:
+                self.pre_model = pre_model
+                self.stage_transform = stage_transform if stage_transform is not None else None
 
     def __getitem__(self, index: int) -> Tuple[Any, Any, Any]:
         """
@@ -84,8 +92,11 @@ class SensorFolder(DatasetFolder):
         if len(target) == 1:
             target = target[0]
         if self.transform is not None:
-            for i in range(len(self.transform)):
-                sample[i] = self.transform[i](sample[i])
+            if isinstance(self.transform, Compose):
+                sample = self.transform(sample)
+            else:
+                for i in range(len(self.transform)):
+                    sample[i] = self.transform[i](sample[i])
         if self.pre_model is not None:
             if tensor_has_valid_audio_batch_dimension(sample):
                 sample = add_audio_batch_dimension(sample)
@@ -97,6 +108,18 @@ class SensorFolder(DatasetFolder):
             target = self.target_transform(target)
 
         return sample, target, labels
+
+    def apply_transform(self, sample: Any) -> Any:
+        if self.transform is not None:
+            match self.transform:
+                case Compose():
+                    sample = self.transform(sample)
+                case list() as transform_list if all(callable(t) for t in transform_list):
+                    for i in range(len(transform_list)):
+                        sample[i] = transform_list[i](sample[i])
+                case _:
+                    raise TypeError("transform should be either a Compose or a list of callables.")
+        return sample
 
 
 class AudioFolder(DatasetFolder):

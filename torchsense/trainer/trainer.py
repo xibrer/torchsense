@@ -13,10 +13,10 @@ torch.set_float32_matmul_precision("medium")
 
 
 class Trainer:
-    def __init__(self, model,task="r", precision="32", max_epochs=5,
+    def __init__(self, model, loss=None, task="r", precision="32", max_epochs=5,
                  lr=0.001, *args):
         if task == "r":
-            self.model = LitRegressModel(model, lr=lr)
+            self.model = LitRegressModel(model, lr=lr, loss_fn=loss)
         elif task == "c":
             self.model = LitClassModel(model, lr=lr)
         elif task == "m":

@@ -49,6 +49,9 @@ class Compose:
             inputs = outputs if needs_unpacking else (outputs,)
         return outputs
 
+    def __len__(self):
+        return len(self.transforms)
+
     def extra_repr(self) -> str:
         format_string = []
         for t in self.transforms:

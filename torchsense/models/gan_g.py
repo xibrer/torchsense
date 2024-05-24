@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import time
 import pynvml
+from einops import rearrange
 
 
 class BasicBlock(nn.Module):
@@ -310,6 +311,7 @@ class Generator(nn.Module):
             nn.Linear(600, 600),
             nn.LeakyReLU(),
             nn.Linear(600, 257),
+            nn.Sigmoid(),
         )
 
     def forward(self, inputs, training=True):
@@ -318,20 +320,14 @@ class Generator(nn.Module):
         acc_extraction = self.acc(acc)
         features = torch.concat((noise_extraction, acc_extraction), dim=2)
         att = self.att(features)
-        reshape = att.permute(0, 3, 1, 2)
-        reshape = reshape.reshape(reshape.shape[0], reshape.shape[1], -1)
-
-        lstm = self.lstm(reshape)[0]
-        # print("generator:blstm"+str(time_start-time.time()))
-        # time_start=time.time()
+        att = rearrange(att, 'b 1 f t -> b t f')
+        lstm = self.lstm(att)[0]
         out = self.fc(lstm)
-
-        out = out.float()
         if not training:
             print(f"out:{out.max()}")
             print(f"noise:{noise.max()}")
-        out = torch.sigmoid(out)
-        mask = out.permute(0, 2, 1).unsqueeze(1)
+        # out = torch.sigmoid(out)
+        mask = rearrange(out, 'b t f -> b 1 f t')
         output = mask * noise
 
         return output
