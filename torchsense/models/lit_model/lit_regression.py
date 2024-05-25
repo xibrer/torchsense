@@ -1,11 +1,7 @@
 import lightning as L
 import torch
-from torchmetrics.functional.classification.accuracy import accuracy
-import torch.optim as optim
-import torch.nn.functional as F
 import torch.nn as nn
-from torchmetrics.regression import MeanSquaredError
-import numpy as np
+import torch.optim as optim
 
 
 class LitRegressModel(L.LightningModule):
@@ -16,8 +12,8 @@ class LitRegressModel(L.LightningModule):
         self.model.apply(self.weights_init)
         self.total_train_loss = []
         self.validation_step_outputs = []
-        if loss_fn:
-            self.loss_fn = MeanSquaredError()
+        if loss_fn is None:
+            self.loss_fn = nn.MSELoss()
         else:
             self.loss_fn = loss_fn
 
@@ -31,7 +27,10 @@ class LitRegressModel(L.LightningModule):
             x = tuple(x)
         preds = self.model(x)
 
-        loss = self.loss_fn(preds.squeeze(1), y.squeeze(1))
+        if isinstance(self.loss_fn, nn.MSELoss):
+            loss = self.loss_fn(preds.flatten(), y.flatten())
+        else:
+            loss = self.loss_fn(preds.squeeze(1), y.squeeze(1))
         if mode == "train":
             self.total_train_loss.append(loss)
         else:

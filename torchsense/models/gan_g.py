@@ -1,9 +1,8 @@
-import torch.nn.functional as F
-import numpy as np
+
+import time
+
 import torch
 import torch.nn as nn
-import time
-import pynvml
 from einops import rearrange
 
 
