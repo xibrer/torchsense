@@ -14,6 +14,8 @@ class LitMultimodalModel(L.LightningModule):
         self.model = model
         self.model.apply(self.weights_init)
         self.loss_fn = MeanSquaredError()
+        self.total_train_loss = []
+        self.validation_step_outputs = []
 
     def forward(self, x: torch.Tensor):
         return self.model(x)
@@ -22,10 +24,16 @@ class LitMultimodalModel(L.LightningModule):
         x = tuple(batch[0])
         y = batch[1]
         preds = self.model(x)
-
         loss = self.loss_fn(preds.flatten(), y.flatten())
 
-        self.log("%s_loss" % mode, loss, prog_bar=True, on_step=mode == "train", on_epoch=mode == "val")
+        if mode == "train":
+            self.total_train_loss.append(loss)
+            self.log("%s_loss" % mode, loss, prog_bar=True, on_step=True, on_epoch=True)
+        else:
+            self.validation_step_outputs.append(loss)
+            self.log("%s_loss" % mode, loss, prog_bar=True, on_step=False, on_epoch=True)
+
+      
 
         return loss
 
@@ -40,8 +48,24 @@ class LitMultimodalModel(L.LightningModule):
         loss = self._calculate_loss(batch, mode="train")
         return loss
 
+    def on_train_epoch_end(self):
+        # log epoch metric
+        stacked_tensors = torch.stack(self.total_train_loss)
+        # 计算堆叠张量的均值
+        mean_tensor = torch.mean(stacked_tensors, dim=0)
+        self.log('train_loss_epoch', mean_tensor)
+        self.total_train_loss = []
+
     def validation_step(self, batch, batch_idx):
         self._calculate_loss(batch, mode="val")
+
+    def on_validation_epoch_end(self):
+        stacked_tensors = torch.stack(self.validation_step_outputs)
+        # 计算堆叠张量的均值
+        mean_tensor = torch.mean(stacked_tensors, dim=0)
+        self.log('val_loss_epoch', mean_tensor)
+        self.validation_step_outputs.clear()
+
 
     def test_step(self, batch, batch_idx):
         self._calculate_loss(batch, mode="test")

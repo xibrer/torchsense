@@ -27,21 +27,19 @@ class LitRegressModel(L.LightningModule):
             x = tuple(x)
         preds = self.model(x)
 
-        if isinstance(self.loss_fn, nn.MSELoss):
-            loss = self.loss_fn(preds.flatten(), y.flatten())
-        else:
-            loss = self.loss_fn(preds.squeeze(1), y.squeeze(1))
+        loss = self.loss_fn(preds, y)
         if mode == "train":
             self.total_train_loss.append(loss)
+            self.log("%s_loss" % mode, loss, prog_bar=True, on_step=True, on_epoch=True)
         else:
             self.validation_step_outputs.append(loss)
-        self.log("%s_loss" % mode, loss, prog_bar=True, on_step=mode == "train", on_epoch=mode == "val")
+            self.log("%s_loss" % mode, loss, prog_bar=True, on_step=False, on_epoch=True)
 
         return loss
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr)
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
         # optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
         # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
         return [optimizer], [scheduler]
@@ -60,6 +58,7 @@ class LitRegressModel(L.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         self._calculate_loss(batch, mode="val")
+        
 
     def on_validation_epoch_end(self):
         stacked_tensors = torch.stack(self.validation_step_outputs)

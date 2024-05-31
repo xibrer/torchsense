@@ -2,19 +2,19 @@ from torchsense.models.lit_model import *
 import lightning as L
 import os
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.loggers import CSVLogger
 import torch
 from lightning.pytorch.tuner import Tuner
-
+import time
+from pathlib import Path
 L.seed_everything(42)
-CHECKPOINT_PATH = os.environ.get("PATH_CHECKPOINT", "saved_models/base")
-print(CHECKPOINT_PATH)
-os.makedirs(CHECKPOINT_PATH, exist_ok=True)
+
 torch.set_float32_matmul_precision("medium")
 
 
 class Trainer:
-    def __init__(self, model, loss=None, task="r", precision="32", max_epochs=5,
-                 lr=0.001, *args):
+    def __init__(self, model, save_name = "base",loss=None, task="r", precision="32", max_epochs=5,
+                 lr=0.001, logger = None,*args):
         if task == "r":
             self.model = LitRegressModel(model, lr=lr, loss_fn=loss)
         elif task == "c":
@@ -25,16 +25,24 @@ class Trainer:
             self.model = LitTwoStageModel(model, lr=lr)
         else:
             raise ValueError("task must be either 'r' or 'c'")
+        CHECKPOINT_PATH = Path("outputs-lightnings", save_name,time.strftime("%Y%m%d/%H%M%S"))
+
+        print("model saved at :",CHECKPOINT_PATH/"ckpt")
+        os.makedirs(CHECKPOINT_PATH/"ckpt", exist_ok=True)
+        if logger is None:
+            logger = CSVLogger(CHECKPOINT_PATH,name=None)
         self.max_epochs = max_epochs
         self.precision = precision
         self.trainer = L.Trainer(
-            default_root_dir=CHECKPOINT_PATH,
             precision=self.precision,
             accelerator="auto",
             max_epochs=self.max_epochs,
+            logger=logger,
             callbacks=[
-                ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_loss",
-                                save_last=True, save_top_k=3, filename='{epoch}-{val_loss:.2f}'),
+                ModelCheckpoint(dirpath=CHECKPOINT_PATH/"ckpt", filename='{epoch}-{val_loss_epoch:.2f}',
+                                save_weights_only=True, mode="min", monitor="val_loss_epoch",
+                                enable_version_counter=False,
+                                save_last=True, save_top_k=3),
                 # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
 
             ], *args,
@@ -43,6 +51,7 @@ class Trainer:
     def fit(self, train_loader, val_loader):
 
         self.trainer.fit(self.model, train_loader, val_loader)
+
 
     def lr_find(self, train_loader, val_loader):
 

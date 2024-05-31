@@ -310,7 +310,7 @@ class Generator(nn.Module):
             nn.Linear(600, 600),
             nn.LeakyReLU(),
             nn.Linear(600, 257),
-            nn.Sigmoid(),
+            
         )
 
     def forward(self, inputs, training=True):
@@ -325,7 +325,8 @@ class Generator(nn.Module):
         if not training:
             print(f"out:{out.max()}")
             print(f"noise:{noise.max()}")
-        # out = torch.sigmoid(out)
+        out = out.float()
+        out = torch.sigmoid(out)
         mask = rearrange(out, 'b t f -> b 1 f t')
         output = mask * noise
 

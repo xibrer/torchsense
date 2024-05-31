@@ -15,8 +15,8 @@ class Interpolate(torch.nn.Module):
         self.mode = mode
 
     def forward(self, x):
-        if not tensor_has_valid_audio_batch_dimension(x):
-            x = add_audio_batch_dimension(x)
+        if not has_batch_dimension(x):
+            x = add_batch_dimension(x)
         x = torch.nn.functional.interpolate(x, size=self.size, mode=self.mode)
-        x = remove_audio_batch_dimension(x)
+        x = remove_batch_dimension(x)
         return x
