@@ -14,7 +14,8 @@ license = { file = "LICENSE" }
 dependencies = [
     "numpy",
     "einops",
-    "torchaudio",
+    "h5py", "pesq",
+    "torchaudio", "torchinfo",
     "torchmetrics[audio]",
     "lightning",
 
