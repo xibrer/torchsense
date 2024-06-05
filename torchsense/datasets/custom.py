@@ -1,7 +1,7 @@
 from .utils import load_file
 from .folder import DatasetFolder
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
-from torchsense.transforms import has_batch_dimension,add_batch_dimension,remove_batch_dimension, Compose
+from torchsense.transforms import has_batch_dimension, add_batch_dimension, remove_batch_dimension, Compose
 from typing import List, Callable, Any
 
 IMG_EXTENSIONS = (".mat", ".jpeg", ".npz")
@@ -47,6 +47,7 @@ class SensorFolder(DatasetFolder):
             self,
             root: str,
             params: Tuple[List[str], Optional[List[str]]],
+            exclude_dir: str = None,
             pre_model=None,
             stage_transform: Optional[Callable] = None,
             max_samples: Optional[int] = None,
@@ -59,8 +60,9 @@ class SensorFolder(DatasetFolder):
         super().__init__(
             root,
             params,
-            loader,
-            IMG_EXTENSIONS if is_valid_file is None else None,
+            exclude_dir=exclude_dir,
+            loader=loader,
+            extensions=IMG_EXTENSIONS if is_valid_file is None else None,
             transform=transform,
             target_transform=target_transform,
             is_valid_file=is_valid_file,

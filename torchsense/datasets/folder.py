@@ -7,18 +7,21 @@ from torch.utils.data import random_split
 from .vision import VisionDataset
 
 
-def has_file_allowed_extension(filename: str, extensions: Union[str, Tuple[str, ...]]) -> bool:
+def has_file_allowed_extension(exclude_dir: str, filename: str, extensions: Union[str, Tuple[str, ...]]) -> bool:
     """Checks if a file is an allowed extension and does not contain 'move' in the filename.
 
     Args:
+        exclude_dir:
         filename (string): path to a file
         extensions (tuple of strings): extensions to consider (lowercase)
 
     Returns:
         bool: True if the filename ends with one of given extensions and does not contain 'move'
     """
-    return 'move' not in filename.lower() and filename.lower().endswith(
-        extensions if isinstance(extensions, str) else tuple(extensions))
+    is_valid_file = filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+    if exclude_dir is None:
+        return is_valid_file
+    return exclude_dir not in filename and is_valid_file
 
 
 def is_image_file(filename: str) -> bool:
@@ -52,6 +55,7 @@ def make_dataset(
         extensions: Optional[Union[str, Tuple[str, ...]]] = None,
         is_valid_file: Optional[Callable[[str], bool]] = None,
         allow_empty: bool = False,
+        exclude_dir: str = "move",
 ) -> List[Tuple[str, int]]:
     """Generates a list of samples of a form (path_to_sample, class).
 
@@ -74,7 +78,7 @@ def make_dataset(
 
     if extensions is not None:
         def is_valid_file(x: str) -> bool:
-            return has_file_allowed_extension(x, extensions)  # type: ignore[arg-type]
+            return has_file_allowed_extension(exclude_dir, x, extensions)  # type: ignore[arg-type]
 
     is_valid_file = cast(Callable[[str], bool], is_valid_file)
 
@@ -140,6 +144,7 @@ class DatasetFolder(VisionDataset):
             root: Union[str, Path],
             params: Tuple[List[str], Optional[List[str]]],
             loader: Callable[[str, Any], Any],
+            exclude_dir: str = None,
             extensions: Optional[Tuple[str, ...]] = None,
             transform: Union[Optional[Callable], List[Callable]] = None,
             target_transform: Optional[Callable] = None,
@@ -154,6 +159,7 @@ class DatasetFolder(VisionDataset):
             extensions=extensions,
             is_valid_file=is_valid_file,
             allow_empty=allow_empty,
+            exclude_dir=exclude_dir
         )
         self.params = params
         self.loader = loader
@@ -171,12 +177,14 @@ class DatasetFolder(VisionDataset):
             extensions: Optional[Tuple[str, ...]] = None,
             is_valid_file: Optional[Callable[[str], bool]] = None,
             allow_empty: bool = False,
+            exclude_dir: str = None,
     ) -> List[Tuple[str, int]]:
         """Generates a list of samples of a form (path_to_sample, class).
 
         This can be overridden to e.g. read files from a compressed zip file instead of from the disk.
 
         Args:
+            exclude_dir:
             directory (str): root dataset directory, corresponding to ``self.root``.
             class_to_idx (Dict[str, int]): Dictionary mapping class name to class index.
             extensions (optional): A list of allowed extensions.
@@ -202,7 +210,8 @@ class DatasetFolder(VisionDataset):
             # is potentially overridden and thus could have a different logic.
             raise ValueError("The class_to_idx parameter cannot be None.")
         return make_dataset(
-            directory, class_to_idx, extensions=extensions, is_valid_file=is_valid_file, allow_empty=allow_empty
+            directory, class_to_idx, extensions=extensions, is_valid_file=is_valid_file, allow_empty=allow_empty,
+            exclude_dir=exclude_dir
         )
 
     def find_classes(self, directory: Union[str, Path]) -> Tuple[List[str], Dict[str, int]]:

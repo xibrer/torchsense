@@ -1,9 +1,6 @@
 import torch
 
 
-
-
-
 def negative_si_snr(x, s, eps=1e-13):
     """
     Args:
@@ -29,3 +26,11 @@ def negative_si_snr(x, s, eps=1e-13):
     si_snr = -torch.mean(20 * torch.log10(eps + l2norm(t) / (l2norm(x_zm - t) + eps)))
 
     return si_snr
+
+
+class ScaleInvariantSignalNoiseRatio(torch.nn.Module):
+    def __init__(self):
+        super(ScaleInvariantSignalNoiseRatio, self).__init__()
+
+    def forward(self, x, s):
+        return negative_si_snr(x, s)

@@ -1,36 +1,37 @@
-from torchsense.models.lit_model import *
+from .lit_model import *
 import lightning as L
 import os
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
+from torchsense.metrics import *
 import torch
 from lightning.pytorch.tuner import Tuner
 import time
 from pathlib import Path
+
 L.seed_everything(42)
 
 torch.set_float32_matmul_precision("medium")
 
 
 class Trainer:
-    def __init__(self, model, save_name = "base",loss=None, task="r", precision="32", max_epochs=5,
-                 lr=0.001, logger = None,*args):
+    def __init__(self, model, save_name="base", loss=None, task="r", precision="32", max_epochs=5,
+                 lr=0.001, logger=None, *args):
+        loss = self.get_loss_fn(loss)
         if task == "r":
             self.model = LitRegressModel(model, lr=lr, loss_fn=loss)
         elif task == "c":
             self.model = LitClassModel(model, lr=lr)
         elif task == "m":
             self.model = LitMultimodalModel(model, lr=lr)
-        elif task == "two" or task == "t":
-            self.model = LitTwoStageModel(model, lr=lr)
         else:
             raise ValueError("task must be either 'r' or 'c'")
-        CHECKPOINT_PATH = Path("outputs-lightnings", save_name,time.strftime("%Y%m%d/%H%M%S"))
+        CHECKPOINT_PATH = Path("outputs-lightnings", save_name, time.strftime("%Y%m/%d/%H-%M-%S"))
 
-        print("model saved at :",CHECKPOINT_PATH/"ckpt")
-        os.makedirs(CHECKPOINT_PATH/"ckpt", exist_ok=True)
+        print("model saved at :", CHECKPOINT_PATH / "ckpt")
+        os.makedirs(CHECKPOINT_PATH / "ckpt", exist_ok=True)
         if logger is None:
-            logger = CSVLogger(CHECKPOINT_PATH,name=None)
+            logger = CSVLogger(CHECKPOINT_PATH, name=None)
         self.max_epochs = max_epochs
         self.precision = precision
         self.trainer = L.Trainer(
@@ -39,7 +40,7 @@ class Trainer:
             max_epochs=self.max_epochs,
             logger=logger,
             callbacks=[
-                ModelCheckpoint(dirpath=CHECKPOINT_PATH/"ckpt", filename='{epoch}-{val_loss_epoch:.2f}',
+                ModelCheckpoint(dirpath=CHECKPOINT_PATH / "ckpt", filename='{epoch}-{val_loss_epoch:.2f}',
                                 save_weights_only=True, mode="min", monitor="val_loss_epoch",
                                 enable_version_counter=False,
                                 save_last=True, save_top_k=3),
@@ -52,7 +53,6 @@ class Trainer:
 
         self.trainer.fit(self.model, train_loader, val_loader)
 
-
     def lr_find(self, train_loader, val_loader):
 
         tuner = Tuner(self.trainer)
@@ -61,3 +61,22 @@ class Trainer:
         # sets hparams.lr or hparams.learning_rate to that learning rate
         lr_finder = tuner.lr_find(self.model, train_loader, val_loader)
         print(lr_finder.suggestion())
+
+    @staticmethod
+    def get_loss_fn(loss):
+        if loss is not None:
+            loss = loss.lower()
+        match loss:
+            case "mse":
+                loss_fn = torch.nn.MSELoss()
+            case "cross_entropy":
+                loss_fn = torch.nn.CrossEntropyLoss()
+            case "l1":
+                loss_fn = torch.nn.L1Loss()
+            case "sisnr":
+                loss_fn = ScaleInvariantSignalNoiseRatio()
+            case None:
+                loss_fn = None  # Handle the case when loss is not provided
+            case _:
+                raise ValueError(f"Unknown loss function: {loss}")
+        return loss_fn

@@ -7,7 +7,7 @@ import torch.optim as optim
 class LitRegressModel(L.LightningModule):
     def __init__(self, model, loss_fn=None, lr=0.0001, gamma=0.7) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=['model','loss_fn'])
         self.model = model
         self.model.apply(self.weights_init)
         self.total_train_loss = []
