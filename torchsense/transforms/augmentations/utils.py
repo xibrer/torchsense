@@ -138,10 +138,11 @@ def get_meta_data(
     else:
         inputs = keys
         input_values = []
-
+        
         # 提取inputs并处理特定行
         for key in inputs:
             key_name, row = parse_key(key)
+            # print(key_name, row)
             if key_name in raw_data:
                 value = raw_data[key_name]
                 if row is not None and len(value) > row:

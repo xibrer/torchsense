@@ -3,11 +3,11 @@ import lightning as L
 import os
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
-from torchsense.metrics import *
 import torch
 from lightning.pytorch.tuner import Tuner
 import time
 from pathlib import Path
+from typing import Optional, List
 
 L.seed_everything(42)
 
@@ -15,18 +15,31 @@ torch.set_float32_matmul_precision("medium")
 
 
 class Trainer:
-    def __init__(self, model, save_name="base", loss=None, task="r", precision="32", max_epochs=5,
-                 lr=0.001, logger=None, *args):
-        loss = self.get_loss_fn(loss)
+    def __init__(self, model,
+                 teacher_model=None,
+                 loss=None,
+                 task="r",
+                 register_layer: Optional[List[str]] = None,
+                 precision="32",
+                 max_epochs=5,
+                 lr=0.001,
+                 ckpt_path=None,
+                 logger=None,
+                 *args):
         if task == "r":
-            self.model = LitRegressModel(model, lr=lr, loss_fn=loss)
+            self.model = LitRegressModel(model, lr=lr, loss=loss)
         elif task == "c":
             self.model = LitClassModel(model, lr=lr)
         elif task == "m":
             self.model = LitMultimodalModel(model, lr=lr)
+        elif task == "kd":
+            self.model = LitKDModel(model, teacher_model,
+                                    loss=loss,
+                                    register_layer=register_layer,
+                                    lr=lr)
         else:
             raise ValueError("task must be either 'r' or 'c'")
-        CHECKPOINT_PATH = Path("outputs-lightnings", save_name, time.strftime("%Y%m/%d/%H-%M-%S"))
+        CHECKPOINT_PATH = ckpt_path
 
         print("model saved at :", CHECKPOINT_PATH / "ckpt")
         os.makedirs(CHECKPOINT_PATH / "ckpt", exist_ok=True)
@@ -61,22 +74,3 @@ class Trainer:
         # sets hparams.lr or hparams.learning_rate to that learning rate
         lr_finder = tuner.lr_find(self.model, train_loader, val_loader)
         print(lr_finder.suggestion())
-
-    @staticmethod
-    def get_loss_fn(loss):
-        if loss is not None:
-            loss = loss.lower()
-        match loss:
-            case "mse":
-                loss_fn = torch.nn.MSELoss()
-            case "cross_entropy":
-                loss_fn = torch.nn.CrossEntropyLoss()
-            case "l1":
-                loss_fn = torch.nn.L1Loss()
-            case "sisnr":
-                loss_fn = ScaleInvariantSignalNoiseRatio()
-            case None:
-                loss_fn = None  # Handle the case when loss is not provided
-            case _:
-                raise ValueError(f"Unknown loss function: {loss}")
-        return loss_fn

@@ -28,7 +28,10 @@ class PreModule(torch.nn.Module):
         if not has_batch_dimension(x):
             x = add_batch_dimension(x)
         x = self.model(x)
-        x = x.detach()
+        if isinstance(x, list) or isinstance(x, tuple):
+            x = x[0].detach()
+        else:
+            x = x.detach()
         if has_batch_dimension:
             remove_batch_dimension(x)
         return x

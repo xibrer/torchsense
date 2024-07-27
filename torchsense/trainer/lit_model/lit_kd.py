@@ -2,68 +2,48 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from .utils import get_loss_fn
-from torchsense.metrics import mape_loss
+from typing import Optional, List
 
-class LitRegressModel(L.LightningModule):
-    def __init__(self, model, loss=None, lr=0.0001, gamma=0.7) -> None:
+
+class LitKDModel(L.LightningModule):
+    def __init__(self,
+                 model,
+                 teacher_model=None,
+                 loss=None,
+                 register_layer=Optional[List[str]],
+                 lr=0.0001,
+                 gamma=0.7) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=['model', 'loss_fn'])
-        self.model = model
-        self.model.apply(self.weights_init)
+        self.save_hyperparameters(ignore=['model', 'loss_fn', 'teacher_model'])
+        self.teacher = teacher_model
+        self.student = model
+        self.student.apply(self.weights_init)
         self.total_train_loss = []
         self.validation_step_outputs = []
         self.loss_name = loss
         self.loss_fn = get_loss_fn(loss)
+        self.activations = {}
+        self.register_layers = register_layer
+        self.register_hooks()
+        print("Teacher model layers:")
 
-    def forward(self, x: torch.Tensor):
-        return self.model(x)
+    def forward(self, x):
+        return self.student(x)
 
     def _calculate_loss(self, batch, mode="train"):
-        """
-        Calculates the loss for a given batch of data.
-
-        Args:
-            batch (tuple): A tuple containing the input data (x) and the target labels (y).
-            mode (str, optional): The mode of operation. Defaults to "train".
-
-        Returns:
-            torch.Tensor: The calculated loss value.
-
-        """
         x = batch[0]
         y = batch[1]
         if not isinstance(x, torch.Tensor):
             x = tuple(x)
 
-        preds = self.model(x)
-        if self.loss_name == "clt":
-            # Calculate the mean squared error loss between the predictions and the ground truth for the first prediction
-            p_loss = F.mse_loss(preds[0], y.squeeze(1))
+        preds = self.student(x)[0]
+        # 前向传播
+        with torch.no_grad():
+            teacher_preds = self.teacher(x)
 
-            # Calculate the factor as the difference between the max and min absolute values of the first prediction
-            p_factor = torch.max(torch.abs(y), -1)[0] - torch.min(torch.abs(y), -1)[0]
+        loss = self.loss_fn(preds, y, teacher_preds, self.activations, self.register_layers)
 
-            # Calculate the mean absolute percentage error loss between the second prediction and the difference of x and y
-            n_loss = F.mse_loss(preds[0], (x - preds[1]).squeeze(1))
-            # Calculate the factor as the difference between the max and min absolute values of the second prediction
-            n_factor = torch.max(torch.abs(x - y), -1)[0] - torch.min(torch.abs(x - y), -1)[0]
-            # Print the calculated losses
-            
-            # Calculate the mean squared error loss between the sum of predictions and x
-            rec_loss = F.mse_loss(preds[0] + preds[1], x.squeeze(1))
-            n1 = torch.mean(p_factor)/(torch.mean(p_factor)+torch.mean(n_factor))
-            p1 = torch.mean(n_factor)/(torch.mean(p_factor)+torch.mean(n_factor))
-            print(p1, n1)
-            print(f"p_loss: {p_loss*p1}, n_loss: {n_loss*n1}, rec_loss: {rec_loss}")
-            # Combine the losses
-            loss = p_loss*0.5 + n_loss*0.5# + 0.03*rec_loss
-
-        elif self.loss_name == "triplet":
-            loss = self.loss_fn(preds, y,x)
-        else:
-            loss = self.loss_fn(preds, y)
         if mode == "train":
             self.total_train_loss.append(loss)
             self.log("%s_loss" % mode, loss, prog_bar=True, on_step=True, on_epoch=True)
@@ -75,7 +55,7 @@ class LitRegressModel(L.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.25)
         # optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
         # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
         return [optimizer], [scheduler]
@@ -117,3 +97,31 @@ class LitRegressModel(L.LightningModule):
         elif isinstance(m, nn.Module):
             for name, child in m.named_children():
                 self.weights_init(child)
+
+    def register_hooks(self):
+        for layer_name in self.register_layers:
+            # 检查并注册teacher模型的钩子
+            teacher_layer = getattr(self.teacher, layer_name, None)
+            if teacher_layer is not None:
+                teacher_hook = self.get_activation(f"teacher_{layer_name}")
+                teacher_layer.register_forward_hook(teacher_hook)
+                print(f"Registered teacher hook on layer: {layer_name}")
+            else:
+                print(f"Teacher model does not have a layer named: {layer_name}")
+
+            # 检查并注册student模型的钩子
+            student_layer = getattr(self.student, layer_name, None)
+            if student_layer is not None:
+                student_hook = self.get_activation(f"student_{layer_name}")
+                student_layer.register_forward_hook(student_hook)
+                print(f"Registered student hook on layer: {layer_name}")
+            else:
+                print(f"Student model does not have a layer named: {layer_name}")
+
+    def get_activation(self, name):
+        def hook(model, input, output):
+            # print(f"Hook called for {name}")
+            self.activations[name] = output.detach()
+            return output  # 确保返回有效的输出
+
+        return hook

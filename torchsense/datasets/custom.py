@@ -88,6 +88,7 @@ class SensorFolder(DatasetFolder):
         """
         path, labels = self.samples[index]
         sample, target = self.loader(path, self.params)
+        
         if len(sample) == 1:
             sample = sample[0]
         if len(target) == 1:

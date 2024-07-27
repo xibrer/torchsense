@@ -3,10 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
 
+from torchinfo import summary
 
-class UNet(nn.Module):
-    def __init__(self, n_channels: int, n_classes: int, bilinear: bool = False) -> None:
-        super(UNet, self).__init__()
+
+class UNetLSTM(nn.Module):
+    def __init__(self, n_channels: int,
+                  n_classes: int, 
+                  input_size: int = 400,
+                  bilinear: bool = False) -> None:
+        super(UNetLSTM, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
@@ -21,8 +26,10 @@ class UNet(nn.Module):
         self.up2 = Up(512, 256 // factor, bilinear)
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
+
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=392, batch_first=True)
         self.outc = OutConv(64, n_classes)
-        
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -33,7 +40,8 @@ class UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        
+        x = self.lstm(x)[0]
+        # print(x.shape)
         logits = self.outc(x)
         return logits
 
@@ -112,3 +120,12 @@ class OutConv(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.conv(x)
+
+
+if __name__ == "__main__":
+    # Create a UNet model
+    model = UNet(n_channels=1, n_classes=1)
+
+    batch_size = 2
+    inputs = (batch_size, 1, 100)
+    summary(model, input_size=inputs)

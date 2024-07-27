@@ -5,3 +5,5 @@ from torchsense.transforms.augmentations.griffinlim import GriffinLim
 from torchsense.transforms.augmentations.premodule import PreModule
 from torchsense.transforms.augmentations.utils import has_batch_dimension, add_batch_dimension, remove_batch_dimension
 from torchsense.transforms.augmentations.addnoise import AddNoise
+from torchsense.transforms.augmentations.highpass_biquad import HighPassBiquad
+from torchsense.transforms.augmentations.downsample import DownSample

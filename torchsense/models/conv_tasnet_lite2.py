@@ -2,54 +2,7 @@ from einops import rearrange
 import torch
 import torch.nn as nn
 from torchinfo import summary
-import torch.nn.functional as F
-class BottleneckResidualSEBlock(nn.Module):
-    expansion = 1
 
-    def __init__(self, in_channels, out_channels, stride, r=16):
-        super().__init__()
-
-        self.residual = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels, 1),
-            nn.BatchNorm1d(out_channels),
-            nn.ReLU(inplace=True),
-
-            nn.Conv1d(out_channels, out_channels, 3, stride=stride, padding=1),
-            nn.BatchNorm1d(out_channels),
-            nn.ReLU(inplace=True),
-
-            nn.Conv1d(out_channels, out_channels * self.expansion, 1),
-            nn.BatchNorm1d(out_channels * self.expansion),
-            nn.ReLU(inplace=True)
-        )
-
-        self.squeeze = nn.AdaptiveAvgPool1d(1)
-        self.excitation = nn.Sequential(
-            nn.Linear(out_channels * self.expansion, out_channels * self.expansion // r),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels * self.expansion // r, out_channels * self.expansion),
-            nn.Sigmoid()
-        )
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_channels != out_channels * self.expansion:
-            self.shortcut = nn.Sequential(
-                nn.Conv1d(in_channels, out_channels * self.expansion, 1, stride=stride),
-                nn.BatchNorm1d(out_channels * self.expansion)
-            )
-
-    def forward(self, x):
-        shortcut = self.shortcut(x)
-
-        residual = self.residual(x)
-        squeeze = self.squeeze(residual)
-        squeeze = squeeze.view(squeeze.size(0), -1)
-        excitation = self.excitation(squeeze)
-        excitation = excitation.view(residual.size(0), residual.size(1), 1)
-
-        x = residual * excitation.expand_as(residual) + shortcut
-
-        return F.relu(x)
 
 class GlobalLayerNorm(nn.Module):
     '''
@@ -130,45 +83,11 @@ class Encoder(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(Encoder, self).__init__()
         self.sequential = nn.Sequential(
-            Conv1D(in_channels, out_channels, kernel_size, stride=stride,padding = 20),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.PReLU(),
+            Conv1D(in_channels, out_channels, kernel_size, stride=stride),
             Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.PReLU(),
             Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.PReLU()
-        )
-
-    def forward(self, x):
-        '''
-           x: [B, T]
-           out: [B, N, T]
-        '''
-        x = self.sequential(x)
-        return x
-
-
-class AccEncoder(nn.Module):
-
-    def __init__(self, in_channels, out_channels):
-        super(AccEncoder, self).__init__()
-        self.sequential = nn.Sequential(
-            # nn.ConvTranspose1d(in_channels, out_channels, kernel_size=3, stride=2, padding=1),
-            nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.LayerNorm(400),
-            nn.PReLU(),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.LayerNorm(400),
-            nn.PReLU(),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.LayerNorm(400),
-            nn.PReLU(),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.PReLU(),
-            Conv1D(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.PReLU(),
-           
         )
 
     def forward(self, x):
@@ -191,13 +110,13 @@ class Decoder(nn.Module):
     def __init__(self, N, kernel_size=16, stride=16 // 2):
         super(Decoder, self).__init__()
         self.sequential = nn.Sequential(
-            nn.ConvTranspose1d(N, 2*N, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose1d(N, N, kernel_size=3, stride=1, padding=1),
             nn.PReLU(),
-            nn.ConvTranspose1d(2*N, 2*N, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose1d(N, N, kernel_size=3, stride=1, padding=1),
             nn.PReLU(),
-            nn.ConvTranspose1d(2*N, 2*N, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose1d(N, N, kernel_size=3, stride=1, padding=1),
             nn.PReLU(),
-            nn.ConvTranspose1d(2*N, 1, kernel_size=kernel_size, stride=stride, padding=20, bias=True)
+            nn.ConvTranspose1d(N, 1, kernel_size=kernel_size, stride=stride, bias=True)
         )
 
     def forward(self, x):
@@ -343,7 +262,7 @@ class Separation(nn.Module):
             return x
 
 
-class ConvTasNet(nn.Module):
+class ConvTasNetLite(nn.Module):
     '''
        ConvTasNet module
        N	Number of ﬁlters in autoencoder
@@ -358,40 +277,36 @@ class ConvTasNet(nn.Module):
 
     def __init__(self,
                  N=256,
-                 L=80,
+                 L=16,
                  B=128,
                  H=512,
                  P=3,
                  X=4,
+                 # X=4,
                  R=2,
                  norm="gln",
                  num_spks=1,
                  activate="relu",
                  causal=False,
-                 skip_con=False,
-                 multimodal=True):
-        super(ConvTasNet, self).__init__()
+                 skip_con=False):
+        super(ConvTasNetLite, self).__init__()
+        # print(num_spks)
         # n x 1 x T => n x N x T
         self.encoder = Encoder(1, N, L, stride=L // 2)
-        self.acc_encoder = AccEncoder(1, N)
         # n x N x T  Layer Normalization of Separation
         self.LayerN_S = select_norm('cln', N)
-        self.AccLayerN_S = select_norm('cln', N)
+
         # n x B x T  Conv 1 x 1 of  Separation
         self.BottleN_S = Conv1D(N, B, 1)
-        self.AccBottleN_S = Conv1D(N, B, 1)
-        
+
         # Separation block
         # n x B x T => n x B x T
-        
-        B = 2*B if multimodal else B
-        self.separation = Separation(R, X, B, H, P, norm=norm, causal=causal, skip_con=skip_con) 
-        
+        self.separation = Separation(R, X, B, H, P, norm=norm, causal=causal, skip_con=skip_con)
+        self.conv1d = nn.Conv1d(2 * B, B, 1, 1)
+        # n x B x T => n x 2*N x T
         self.gen_masks = Conv1D(B, num_spks * N, 1)
-
         # n x N x T => n x 1 x L
         self.decoder = Decoder(N, L, stride=L // 2)
-
         # activation function
         active_f = {
             'relu': nn.ReLU(),
@@ -399,55 +314,38 @@ class ConvTasNet(nn.Module):
             'softmax': nn.Softmax(dim=0)
         }
         self.activation_type = activate
-        self.acc_activation = nn.Sigmoid()
         self.activation = active_f[activate]
         self.num_spks = num_spks
-        self.multimodal = multimodal
 
-    def forward(self, batch):
-        z, x = batch
-        # print(z.shape,x.shape)
-
+    def forward(self, x):
         # x: n x 1 x L => n x N x T
         w = self.encoder(x)
+
         # n x N x L => n x B x L
         e = self.LayerN_S(w)
         e = self.BottleN_S(e)
 
-        w_acc = self.acc_encoder(z)
-        e_acc = self.AccBottleN_S(w_acc)
-        e_acc = self.acc_activation(e_acc)
+        e = self.separation(e)  # n x B x L => n x B x L
+        m = self.gen_masks(e)  # n x B x L => n x num_spk*N x L
 
-        if self.multimodal:
-            e = torch.cat((e, e_acc), dim=1)
-        # w = self.encoder_merge(w) # n x 2N x L => n x N x L
-
-        e = self.separation(e) # n x B x L => n x B x L
-        m = self.gen_masks(e)# n x B x L => n x num_spk*N x L
-        m = rearrange(m, 'n (num_spks N) L -> num_spks n N L', num_spks=self.num_spks)
-        m = m.float()
+        m = rearrange(m, 'n (num_spks N) l -> num_spks n N l', num_spks=self.num_spks)
         m = self.activation(m)
-
         if self.num_spks > 1:
-            mask1 = w* m[0]
-            mask2 = w_acc*m[1]
-            d = torch.cat((mask1,mask2), dim=1)
 
-             # d = [w_acc * m[0], w * m[1]]
-            s = self.decoder(d.squeeze(0)) 
-            return s.unsqueeze(1)
+            d = [w * m[i] for i in range(self.num_spks)]
+            s = [self.decoder(d[i]) for i in range(self.num_spks)]  # decoder part num_spks x n x L
+            return s
         else:
-            d = w*m
+            d = w * m
             s = self.decoder(d.squeeze(0))
             return s.unsqueeze(1)
-        
-       
 
 
 def test_convtasnet():
-    nnet = ConvTasNet()
-    batch_size = 2
-    summary(nnet, input_size=((batch_size, 1, 80000), (batch_size, 1, 5000)))
+    nnet = ConvTasNetLite()
+    batch_size = 4
+    z = (batch_size, 1, 400)
+    summary(nnet, input_size=z)
     # print(s.shape)
 
 

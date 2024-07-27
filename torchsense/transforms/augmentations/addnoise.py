@@ -8,9 +8,11 @@ from pathlib import Path
 
 class AddNoise(torch.nn.Module):
 
-    def __init__(self, noise_file_paths: str = None,
+    def __init__(self, 
+                 noise_file_paths: str = None,
                  key="acc[2]",
-                 add_prob: float = 0.8):
+                 add_prob: float = 1
+                 ):
         """
         :param noise_file_paths: file path for noise
         """
@@ -21,7 +23,7 @@ class AddNoise(torch.nn.Module):
         noise_file_paths = Path(noise_file_paths)
         for path in sorted(noise_file_paths.rglob('*')):
             full_path_str = str(path)  # Get the full path string
-            if path.is_file() and "clean" not in full_path_str:
+            if path.is_file():
                 # print(full_path_str)
                 self.noise_list.append(full_path_str)
 
@@ -30,7 +32,11 @@ class AddNoise(torch.nn.Module):
             # print("No noise added")
             return x
         index = random.randint(0, len(self.noise_list))
+        enhance_amptitude = random.uniform(1, 3)
+        enhance_amptitude = 3
         noise_file_path = self.noise_list[index]
         noise = load_file(noise_file_path, self.key)
-        x = x + noise[0].reshape(1, -1)
+        # print(noise[0])
+        noise = noise[0]*enhance_amptitude
+        x = x + noise.reshape(1, -1)
         return x

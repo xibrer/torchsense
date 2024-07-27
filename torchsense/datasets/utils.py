@@ -105,12 +105,51 @@ def get_meta_data(
 
 
 def load_npz_file(path, keys):
-    npz_data = np.load(path)
-    return tuple(npz_data[key] for key in keys if key in npz_data)
+    raw_data = np.load(path)
+    def parse_key(key: str) -> Tuple[str, Optional[int]]:
+        if '[' in key and ']' in key:
+            key_name = key[:key.index('[')]
+            row_str = key[key.index('[') + 1:key.index(']')]
+            if row_str.isdigit():
+                return key_name, int(row_str)
+        return key, None
+
+    if keys is None:
+        # If keys is None, return all values in raw_data as a tuple
+        # Remove meta info
+        if '__header__' in raw_data:
+            del raw_data['__header__']
+        if '__version__' in raw_data:
+            del raw_data['__version__']
+        if '__globals__' in raw_data:
+            del raw_data['__globals__']
+        return tuple(raw_data.values())
+    else:
+        inputs, targets = keys
+        input_values = []
+        target_values = []
+
+        # 提取inputs并处理特定行
+        for key in inputs:
+            key_name, row = parse_key(key)
+            if key_name in raw_data:
+                value = raw_data[key_name]
+                if row is not None and len(value) > row:
+                    input_values.append(value[row])
+                else:
+                    input_values.append(value)
+
+        # 提取targets
+        for key in targets:
+            key_name, row = parse_key(key)
+            if key_name in raw_data:
+                value = raw_data[key_name]
+                if row is not None and len(value) > row:
+                    target_values.append(value[row])
+                else:
+                    target_values.append(value)
+
+        # 将列表转换为元组
+        return input_values, target_values
 
 
-
-# 使用示例
-# file_path = 'example.txt'
-# data1 = load_file(file_path)
-# print(data1)
