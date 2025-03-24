@@ -4,21 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torchsense"
-version = "0.0.14"
+version = "0.0.15"
 authors = [
     {name = "Xingwei Wang", email = "wxwjkl123@gmail.com"},
 ]
 description = "Torchsense is a library for sensor data processing with PyTorch"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = "MIT"
 dependencies = [
     "numpy",
     "einops",
-    "h5py", "pesq",
-    "torchaudio", "torchinfo",
-    "torchmetrics[audio]",
+    "h5py",
+    "pesq",
+    "torchaudio",
+    "torchinfo",
     "lightning",
-
+    "pkginfo==1.10.0",
 ]
 
 [project.urls]

@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
-
 from torchinfo import summary
+from typing import Optional
 
 
 class UNetLSTM(nn.Module):
@@ -30,7 +29,9 @@ class UNetLSTM(nn.Module):
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=392, batch_first=True)
         self.outc = OutConv(64, n_classes)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x) -> torch.Tensor:
+        if isinstance(x, tuple):
+            x = x[0]
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)

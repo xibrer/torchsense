@@ -1,31 +1,85 @@
 import lightning as L
 import torch
-from torchmetrics.functional.classification.accuracy import accuracy
-import torch.optim as optim
-import torch.nn.functional as F
 import torch.nn as nn
-from torchmetrics.regression import MeanSquaredError
+import torch.nn.functional as F
+import torch.optim as optim
+
+from torchsense.metrics import mape_loss
+from torchsense.utils import load_from_ckpt
+from .utils import get_loss_fn
 
 
 class LitMultimodalModel(L.LightningModule):
-    def __init__(self, model, lr=0.0001, gamma=0.7) -> None:
+    def __init__(self, model, pre_model=None, pre_path=None, loss=None, input_params_n=2, lr=0.0001, gamma=0.7) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=['model', 'loss_fn', 'pre_model'])
         self.model = model
-        self.model.apply(self.weights_init)
-        self.loss_fn = MeanSquaredError()
+        if pre_model is not None:
+            self.pre_model = load_from_ckpt(pre_model, pre_path)
+            self.pre_model.eval()  # Set pre_model to evaluation mode
+            for param in self.pre_model.parameters():
+                param.requires_grad = False  # Freeze pre_model parameters
+        # self.model.apply(self.weights_init)
         self.total_train_loss = []
         self.validation_step_outputs = []
+        self.loss_name = loss
+        self.loss_fn = get_loss_fn(loss)
 
     def forward(self, x: torch.Tensor):
         return self.model(x)
 
     def _calculate_loss(self, batch, mode="train"):
-        x = tuple(batch[0])
-        y = batch[1]
-        preds = self.model(x)
-        loss = self.loss_fn(preds.flatten(), y.flatten())
+        """
+        Calculates the loss for a given batch of data.
 
+        Args:
+            batch (tuple): A tuple containing the input data (x) and the target labels (y).
+            mode (str, optional): The mode of operation. Defaults to "train".
+
+        Returns:
+            torch.Tensor: The calculated loss value.
+
+        """
+        x = batch[0]
+        # check 是否无梯度
+        # Use pre_model if available
+        if self.pre_model is not None:
+            with torch.no_grad():
+                x[0] = self.pre_model(x[0])
+                x[0] = torch.nn.functional.interpolate(x[0], size=400, mode='linear')
+        y = batch[1]
+        if not isinstance(x, torch.Tensor):
+            x = tuple(x)
+
+        preds = self.model(x)
+        if self.loss_name == "clt":
+            # Calculate the mean squared error loss between the predictions and the ground truth for the first prediction
+            p_loss = F.mse_loss(preds[0], y.squeeze(1))
+
+            # Calculate the factor as the difference between the max and min absolute values of the first prediction
+            p_factor = torch.max(torch.abs(y), -1)[0] - torch.min(torch.abs(y), -1)[0]
+
+            # Calculate the mean absolute percentage error loss between the second prediction and the difference of x and y
+            n_loss = F.mse_loss(preds[0], (x - preds[1]).squeeze(1))
+            # Calculate the factor as the difference between the max and min absolute values of the second prediction
+            n_factor = torch.max(torch.abs(x - y), -1)[0] - torch.min(torch.abs(x - y), -1)[0]
+            # Print the calculated losses
+
+            # Calculate the mean squared error loss between the sum of predictions and x
+            rec_loss = F.mse_loss(preds[0] + preds[1], x.squeeze(1))
+            n1 = torch.mean(p_factor) / (torch.mean(p_factor) + torch.mean(n_factor))
+            p1 = torch.mean(n_factor) / (torch.mean(p_factor) + torch.mean(n_factor))
+            print(p1, n1)
+            print(f"p_loss: {p_loss * p1}, n_loss: {n_loss * n1}, rec_loss: {rec_loss}")
+            # Combine the losses
+            loss = p_loss * 0.5 + n_loss * 0.5  # + 0.03*rec_loss
+
+        elif self.loss_name == "triplet":
+            loss = self.loss_fn(preds, y, x)
+        elif self.loss_name == "piece":
+            loss = self.loss_fn(preds, y, z)
+        else:
+            loss = self.loss_fn(preds, y)
         if mode == "train":
             self.total_train_loss.append(loss)
             self.log("%s_loss" % mode, loss, prog_bar=True, on_step=True, on_epoch=True)
@@ -33,13 +87,11 @@ class LitMultimodalModel(L.LightningModule):
             self.validation_step_outputs.append(loss)
             self.log("%s_loss" % mode, loss, prog_bar=True, on_step=False, on_epoch=True)
 
-      
-
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.model.parameters(), lr=self.hparams.lr)
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
         # optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
         # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
         return [optimizer], [scheduler]
@@ -65,7 +117,6 @@ class LitMultimodalModel(L.LightningModule):
         mean_tensor = torch.mean(stacked_tensors, dim=0)
         self.log('val_loss_epoch', mean_tensor)
         self.validation_step_outputs.clear()
-
 
     def test_step(self, batch, batch_idx):
         self._calculate_loss(batch, mode="test")

@@ -1,7 +1,10 @@
 import torch
+
 from torchsense.metrics import *
 from torchsense.metrics.kd_losses import StructuredLoss
 from torchsense.metrics.triplet import TripletLoss
+from torchsense.metrics.weight_loss import PiecewiseLoss
+
 
 def get_loss_fn(loss):
     if loss is not None:
@@ -17,6 +20,8 @@ def get_loss_fn(loss):
             loss_fn = torch.nn.L1Loss()
         case "sisnr":
             loss_fn = ScaleInvariantSignalNoiseRatio()
+        case "piece":
+            loss_fn = PiecewiseLoss()
         case "huber":
             loss_fn = torch.nn.SmoothL1Loss()
         case "bce":

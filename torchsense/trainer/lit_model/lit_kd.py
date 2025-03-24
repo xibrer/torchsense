@@ -2,20 +2,23 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from .utils import get_loss_fn
 from typing import Optional, List
+
+from .utils import get_loss_fn
 
 
 class LitKDModel(L.LightningModule):
-    def __init__(self,
-                 model,
-                 teacher_model=None,
-                 loss=None,
-                 register_layer=Optional[List[str]],
-                 lr=0.0001,
-                 gamma=0.7) -> None:
+    def __init__(
+            self,
+            model,
+            teacher_model=None,
+            loss=None,
+            register_layer=Optional[List[str]],
+            lr=0.0001,
+            gamma=0.7,
+    ) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=['model', 'loss_fn', 'teacher_model'])
+        self.save_hyperparameters(ignore=["model", "loss_fn", "teacher_model"])
         self.teacher = teacher_model
         self.student = model
         self.student.apply(self.weights_init)
@@ -42,14 +45,18 @@ class LitKDModel(L.LightningModule):
         with torch.no_grad():
             teacher_preds = self.teacher(x)
 
-        loss = self.loss_fn(preds, y, teacher_preds, self.activations, self.register_layers)
+        loss = self.loss_fn(
+            preds, y, teacher_preds, self.activations, self.register_layers
+        )
 
         if mode == "train":
             self.total_train_loss.append(loss)
             self.log("%s_loss" % mode, loss, prog_bar=True, on_step=True, on_epoch=True)
         else:
             self.validation_step_outputs.append(loss)
-            self.log("%s_loss" % mode, loss, prog_bar=True, on_step=False, on_epoch=True)
+            self.log(
+                "%s_loss" % mode, loss, prog_bar=True, on_step=False, on_epoch=True
+            )
 
         return loss
 
@@ -69,7 +76,7 @@ class LitKDModel(L.LightningModule):
         stacked_tensors = torch.stack(self.total_train_loss)
         # 计算堆叠张量的均值
         mean_tensor = torch.mean(stacked_tensors, dim=0)
-        self.log('train_loss_epoch', mean_tensor)
+        self.log("train_loss_epoch", mean_tensor)
         self.total_train_loss = []
 
     def validation_step(self, batch, batch_idx):
@@ -79,7 +86,7 @@ class LitKDModel(L.LightningModule):
         stacked_tensors = torch.stack(self.validation_step_outputs)
         # 计算堆叠张量的均值
         mean_tensor = torch.mean(stacked_tensors, dim=0)
-        self.log('val_loss_epoch', mean_tensor)
+        self.log("val_loss_epoch", mean_tensor)
         self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):

@@ -1,8 +1,11 @@
-from einops import rearrange
 import torch
 import torch.nn as nn
-from torchinfo import summary
 import torch.nn.functional as F
+from einops import rearrange
+from silero_vad import load_silero_vad, read_audio, get_speech_timestamps
+from torchinfo import summary
+
+
 class BottleneckResidualSEBlock(nn.Module):
     expansion = 1
 
@@ -364,6 +367,7 @@ class ConvTasNet(nn.Module):
                  P=3,
                  X=4,
                  R=2,
+                 audio_weight=0.01,
                  norm="gln",
                  num_spks=1,
                  activate="relu",
@@ -391,7 +395,6 @@ class ConvTasNet(nn.Module):
 
         # n x N x T => n x 1 x L
         self.decoder = Decoder(N, L, stride=L // 2)
-
         # activation function
         active_f = {
             'relu': nn.ReLU(),
@@ -403,6 +406,7 @@ class ConvTasNet(nn.Module):
         self.activation = active_f[activate]
         self.num_spks = num_spks
         self.multimodal = multimodal
+        self.audio_weight = audio_weight
 
     def forward(self, batch):
         z, x = batch
@@ -440,8 +444,6 @@ class ConvTasNet(nn.Module):
             d = w*m
             s = self.decoder(d.squeeze(0))
             return s.unsqueeze(1)
-        
-       
 
 
 def test_convtasnet():

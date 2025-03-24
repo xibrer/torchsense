@@ -1,15 +1,15 @@
 import lightning as L
 import torch
-from torchmetrics.functional.classification.accuracy import accuracy
-import torch.optim as optim
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchmetrics.functional.classification.accuracy import accuracy
 
 
 class LitClassModel(L.LightningModule):
     def __init__(self, model, lr=1, gamma=0.7) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=["model"])
         self.model = model
         self.model.apply(self.weights_init)
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -32,7 +32,9 @@ class LitClassModel(L.LightningModule):
         # optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr)
         # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150], gamma=0.1)
         optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
-        lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
+        lr_scheduler = optim.lr_scheduler.StepLR(
+            optimizer, step_size=1, gamma=self.hparams.gamma
+        )
         return [optimizer], [lr_scheduler]
 
     def training_step(self, batch, batch_idx):

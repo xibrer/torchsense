@@ -1,7 +1,9 @@
 import numpy as np
-import torch
 import numpy.random as random
-from .utils import add_batch_dimension,has_batch_dimension,remove_batch_dimension
+import torch
+
+from .utils import add_batch_dimension, has_batch_dimension, remove_batch_dimension
+
 
 class PreModule(torch.nn.Module):
     """
@@ -12,7 +14,7 @@ class PreModule(torch.nn.Module):
     """
     def __init__(self, model):
         super().__init__()
-        self.model = model
+        self.model = model.cuda()
         self.model.eval()
         
     def forward(self, x):
@@ -27,7 +29,9 @@ class PreModule(torch.nn.Module):
         """
         if not has_batch_dimension(x):
             x = add_batch_dimension(x)
+        x = x.cuda()
         x = self.model(x)
+        x = x.cpu()
         if isinstance(x, list) or isinstance(x, tuple):
             x = x[0].detach()
         else:
