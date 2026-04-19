@@ -1,0 +1,23 @@
+model:
+  class_path: torchsense.models.imu.scg2ecg.SCG2ECG
+  init_args:
+    in_channels: 1           # z-axis only
+    out_channels: 1          # single ECG lead
+    base_filters: 32
+    depth: 4
+    kernel_size: 7
+    dropout: 0.1
+    loss: mse
+    learning_rate: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: adam
+    scheduler: cosine
+    scheduler_kwargs:
+      T_max: 100
+
+trainer:
+  max_epochs: 100
+  accelerator: auto
+  devices: auto
+  precision: 32-true
+  gradient_clip_val: 1.0

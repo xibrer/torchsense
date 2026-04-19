@@ -1,30 +1,52 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "torchsense"
-version = "0.0.15"
-authors = [
-    {name = "Xingwei Wang", email = "wxwjkl123@gmail.com"},
-]
-description = "Torchsense is a library for sensor data processing with PyTorch"
-requires-python = ">=3.10"
-license = "MIT"
+version = "0.1.0"
+description = "A modular deep learning framework for intelligent sensing: radar point cloud, speech enhancement, and physiological signal detection."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
 dependencies = [
-    "numpy",
-    "einops",
-    "h5py",
-    "pesq",
-    "torchaudio",
-    "torchinfo",
-    "lightning",
-    "pkginfo==1.10.0",
+    "torch>=2.1",
+    "lightning>=2.1",
+    "jsonargparse[signatures]>=4.27",
+    "torchmetrics>=1.2",
+    "scipy>=1.11",
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+    "rich>=13.0",
+    "h5py>=3.9",
+    "pandas>=2.1",
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/xibrer/torchsense"
+[project.optional-dependencies]
+export = [
+    "onnx>=1.17",
+    "onnxscript>=0.1",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.1",
+    "onnx>=1.17",
+    "onnxscript>=0.1",
+]
 
+[project.scripts]
+torchsense = "torchsense.cli.cli:main"
 
-[tool.setuptools.packages.find]
-include = ["torchsense*"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/torchsense"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

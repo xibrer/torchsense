@@ -1,0 +1,24 @@
+model:
+  class_path: torchsense.models.imu.scg2bp.SCG2BP
+  init_args:
+    in_channels: 1
+    base_filters: 64
+    num_blocks: 2
+    num_stages: 4
+    kernel_size: 7
+    dropout: 0.2
+    use_se: true
+    loss: huber
+    learning_rate: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: adamw
+    scheduler: cosine
+    scheduler_kwargs:
+      T_max: 100
+
+trainer:
+  max_epochs: 100
+  accelerator: auto
+  devices: auto
+  precision: 32-true
+  gradient_clip_val: 1.0

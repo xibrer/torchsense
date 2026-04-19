@@ -1,0 +1,17 @@
+data:
+  class_path: torchsense.data.datamodules.imu.vib2ecg.Vib2ECGDataModule
+  init_args:
+    data_root: ./data/vib2ecg
+    filename: vib2ecg.h5
+    scg_axes: [2]            # z-axis (perpendicular to chest)
+    ecg_leads: [0]           # V1 lead
+    window_size: 2048        # ~2 seconds at 1kHz
+    stride: 1024             # 50% overlap
+    fs: 1000.0
+    low_freq: 0.5
+    high_freq: 40.0
+    normalize: zscore
+    test_subjects: [15, 16]
+    batch_size: 32
+    num_workers: 4
+    val_split: 0.15

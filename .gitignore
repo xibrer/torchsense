@@ -212,3 +212,17 @@ replay_pid*
 *-ubyte
 lightning_logs/
 tmp/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.ruff_cache/
+anomalib-main/
+.cursor/

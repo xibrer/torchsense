@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torchsense"
+version = "0.0.15"
+authors = [
+    {name = "Xingwei Wang", email = "wxwjkl123@gmail.com"},
+]
+description = "Torchsense is a library for sensor data processing with PyTorch"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "numpy",
+    "einops",
+    "h5py",
+    "pesq",
+    "torch",
+    "torchaudio",
+    "torchinfo",
+    "lightning",
+    "pkginfo==1.10.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/xibrer/torchsense"
+
+
+[tool.setuptools.packages.find]
+include = ["torchsense*"]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
