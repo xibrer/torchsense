@@ -1,0 +1,18 @@
+augmentation:
+  enabled: true
+
+  jitter:
+    enabled: true
+    sigma: 0.01
+
+  time_warp:
+    enabled: true
+    min_scale: 0.9
+    max_scale: 1.1
+
+  random_mask:
+    enabled: true
+    max_masks: 2
+    min_ratio: 0.01
+    max_ratio: 0.08
+    fill_mode: zero

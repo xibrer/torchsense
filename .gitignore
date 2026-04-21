@@ -226,3 +226,8 @@ wheels/
 .ruff_cache/
 anomalib-main/
 .cursor/
+examples/imu/dataset/
+*.pth
+*.onnx
+examples/imu/eval_vis/
+log/

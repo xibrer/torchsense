@@ -133,13 +133,13 @@ def main() -> None:
     parser.add_argument(
         "--imu",
         type=Path,
-        default=_script_dir() / "session_20260419_134121_imu.csv",
+        default=_script_dir() / "session_20260419_154542_imu.csv",
         help="Path to IMU CSV.",
     )
     parser.add_argument(
         "--ecg",
         type=Path,
-        default=_script_dir() / "session_20260419_134121_ecg.csv",
+        default=_script_dir() / "session_20260419_154542_ecg.csv",
         help="Path to ECG CSV.",
     )
     parser.add_argument(
